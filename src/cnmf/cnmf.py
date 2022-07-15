@@ -251,7 +251,7 @@ class cNMF():
 
     def prepare(self, counts_fn, components, n_iter = 100, densify=False, tpm_fn=None, seed=None,
                         beta_loss='frobenius',num_highvar_genes=2000, genes_file=None,
-                        alpha_usage=0.0, alpha_spectra=0.0, init='random'):
+                        alpha_usage=0.0, alpha_spectra=0.0, max_iter=1000, init='random'):
         """
         Load input counts, reduce to high-variance genes, and variance normalize genes.
         Subsequently prepare file for distributing jobs over workers.
@@ -362,7 +362,7 @@ class cNMF():
         self.save_norm_counts(norm_counts)
         (replicate_params, run_params) = self.get_nmf_iter_params(ks=components, n_iter=n_iter, random_state_seed=seed,
                                                                   beta_loss=beta_loss, alpha_usage=alpha_usage,
-                                                                  alpha_spectra=alpha_spectra, init=init)
+                                                                  alpha_spectra=alpha_spectra, max_iter=max_iter, init=init)
         self.save_nmf_iter_params(replicate_params, run_params)
         
     
@@ -470,7 +470,7 @@ class cNMF():
     def get_nmf_iter_params(self, ks, n_iter = 100,
                                random_state_seed = None,
                                beta_loss = 'kullback-leibler',
-                               alpha_usage=0.0, alpha_spectra=0.0,
+                               alpha_usage=0.0, alpha_spectra=0.0, max_iter=1000,
                                init='random'):
         """
         Create a DataFrame with parameters for NMF iterations.
@@ -519,7 +519,7 @@ class cNMF():
                         beta_loss=beta_loss,
                         solver='mu',
                         tol=1e-4,
-                        max_iter=1000,
+                        max_iter=max_iter,
                         init=init
                         )
         
@@ -1006,6 +1006,7 @@ def main():
     parser.add_argument('-c', '--counts', type=str, help='[prepare] Input (cell x gene) counts matrix as df.npz or tab delimited text file')
     parser.add_argument('-k', '--components', type=int, help='[prepare] Numper of components (k) for matrix factorization. Several can be specified with "-k 8 9 10"', nargs='+')
     parser.add_argument('-n', '--n-iter', type=int, help='[prepare] Numper of factorization replicates', default=100)
+    parser.add_argument('-m', '--max-iter', type=int, help='[prepare] Max number of sklearn iterations', default=1000)
     parser.add_argument('--total-workers', type=int, help='[all] Total number of workers to distribute jobs to', default=1)
     parser.add_argument('--seed', type=int, help='[prepare] Seed for pseudorandom number generation', default=None)
     parser.add_argument('--genes-file', type=str, help='[prepare] File containing a list of genes to include, one gene per line. Must match column labels of counts matrix.', default=None)
@@ -1025,7 +1026,7 @@ def main():
     
     if args.command == 'prepare':
         cnmf_obj.prepare(args.counts, components=args.components, n_iter=args.n_iter, densify=args.densify,
-                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss,
+                         tpm_fn=args.tpm, seed=args.seed, beta_loss=args.beta_loss, max_iter=args.max_iter,
                          num_highvar_genes=args.numgenes, genes_file=args.genes_file, init=args.init)
 
     elif args.command == 'factorize':
